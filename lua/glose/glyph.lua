@@ -1,0 +1,200 @@
+local M = {}
+
+local defaults = {
+  numeric = {
+    [1] = "󰎤",
+    [2] = "󰎧",
+    [3] = "󰎪",
+    [4] = "󰎭",
+    [5] = "󰎱",
+    [6] = "󰎳",
+    [7] = "󰎶",
+    [8] = "󰎹",
+    [9] = "󰎼",
+    [10] = "󰎡",
+  },
+
+  severity = {
+    [1] = { icon = "", hl = "DiagnosticError" },
+    [2] = { icon = "", hl = "DiagnosticWarn" },
+    [3] = { icon = "", hl = "DiagnosticInfo" },
+    [4] = { icon = "", hl = "DiagnosticHint" },
+  },
+
+  diff = {
+    hunk_del = "",
+    hunk_add = "",
+    hunk_sign = "",
+    add = "󰐖",
+    delete = "󰍵",
+  },
+
+  tag = {
+    param = "󰏪",
+    returns = "󰌑",
+    brief = "󰧭",
+    throws = "󰚑",
+    see = "󰈈",
+    since = "󰔠",
+    deprecated = "󰃤",
+    note = "󰍩",
+    example = "",
+    version = "󰜣",
+    link = "󰌹",
+    default = "󰁕",
+    type = "󰠱",
+    type_param = "󰗴",
+    field = "󰜢",
+    enum = "󰕘",
+    interface = "󰜰",
+    module = "󰅩",
+    func = "󰊕",
+    sealed = "󰌾",
+    event = "󰀦",
+    package = "󰏗",
+    label = "󰓹",
+    variable = "󰀫",
+    experimental = "󰂡",
+    public = "󰡁",
+    internal = "󰒃",
+  },
+
+  footer = {
+    enter = "󰌑",
+    move = "↕",
+    close = "󰅗",
+    execute = "󰌑",
+    select = "",
+  },
+
+  inlay = {
+    type = "󰠱",
+    param = "",
+    types = {
+      number = "󰎠",
+      string = "󰉿",
+      boolean = "󰨙",
+      null = "󰟢",
+      undefined = "󰘥",
+      unknown = "󰋗",
+      never = "󰅙",
+      array = "󰅪",
+      object = "󰅩",
+      ["function"] = "󰊕",
+      promise = "󰔟",
+      generic = "󰗴",
+    },
+    arrow = "→",
+    params = {},
+  },
+
+  symbol_kind = {
+    [1] = "󰈙",
+    [2] = "󰅩",
+    [3] = "󰌗",
+    [4] = "󰏗",
+    [5] = "󰌆",
+    [6] = "󰜢",
+    [7] = "󰀫",
+    [8] = "󰏿",
+    [9] = "󰕘",
+    [10] = "󰊕",
+    [11] = "󰡱",
+    [12] = "󰊕",
+    [13] = "󰠱",
+    [14] = "󰒕",
+    [15] = "󰜰",
+    [16] = "󰊕",
+    [17] = "󰎠",
+    [18] = "󰉿",
+    [19] = "󰨙",
+    [20] = "󰅪",
+    [21] = "󰅩",
+    [22] = "󰟢",
+    [23] = "󰀫",
+    [24] = "󰀦",
+    [25] = "󰡱",
+    [26] = "󰗴",
+  },
+
+  hover_kind = {
+    alias = "󰌹",
+    method = "󰊕",
+    property = "󰜢",
+    ["function"] = "󰊕",
+    parameter = "󰏪",
+    variable = "󰀫",
+    ["enum member"] = "󰕘",
+    ["type alias"] = "󰠱",
+    interface = "󰜰",
+    class = "󰌗",
+    constructor = "󰡱",
+    namespace = "󰅩",
+    module = "󰅩",
+    const = "󰏿",
+    let = "󰀫",
+    enum = "󰕘",
+    index = "󰜢",
+    type = "󰠱",
+    field = "󰜢",
+    global = "󰀫",
+    ["local"] = "󰀫",
+    import = "󰋺",
+    export = "󰈕",
+  },
+
+  biscuit_kind = {},
+
+  scope_keyword = {
+    ["if"] = "󰘁",
+    ["for"] = "󰑖",
+    ["for_in"] = "󰑖",
+    ["while"] = "󰑖",
+    ["switch"] = "󰘁",
+    ["match"] = "󰘁",
+    ["try"] = "󰔶",
+    ["do"] = "󰑖",
+    ["with"] = "󰅩",
+    ["repeat"] = "󰑖",
+    ["select"] = "󰘁",
+    ["loop"] = "󰑖",
+    ["fn"] = "󰊕",
+    ["jsx"] = "",
+    ["tsx"] = "",
+  },
+
+  ui = {
+    server = "󰚗",
+    file = "󰈙",
+    content = "󰧭",
+    code = "󰓹",
+    loading = "󰔟",
+    info = "󰍻",
+    error = "",
+    symbol_fallback = "󰈚",
+    scroll = "↕",
+    scroll_up = "▲",
+    scroll_down = "▼",
+  },
+}
+
+local icons = nil
+
+function M.setup(opts)
+  icons = vim.tbl_deep_extend("force", {}, defaults, opts or {})
+end
+
+local function get()
+  if not icons then
+    icons = vim.tbl_deep_extend("force", {}, defaults)
+  end
+  return icons
+end
+
+M.get = get
+
+return setmetatable(M, {
+  __index = function(_, k)
+    return get()[k]
+  end,
+})

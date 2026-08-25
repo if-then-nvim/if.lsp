@@ -1,0 +1,163 @@
+---@meta
+
+---@class Glose.Config
+---@field hover Glose.HoverConfig
+---@field diagnostic Glose.DiagnosticConfig
+---@field diagnostic_list Glose.DiagnosticListConfig
+---@field definition Glose.DefinitionConfig
+---@field code_action Glose.CodeActionConfig
+---@field signature_help Glose.SignatureHelpConfig
+---@field inlay_hint Glose.InlayHintConfig
+---@field scope Glose.ScopeConfig
+---@field symbol_icons table<string, string>
+---@field parsers table<string, Glose.TagDef>
+---@field highlights table<string, table>
+---@field glyph table
+
+---@class Glose.ScopeConfig
+---@field enabled boolean
+---@field separator string
+---@field depth_limit number
+---@field depth_limit_indicator string
+---@field safe_output boolean
+---@field lazy_update boolean
+---@field biscuit Glose.ScopeBiscuitConfig
+
+---@class Glose.ScopeBiscuitConfig
+---@field enabled boolean
+---@field visible_mode "hover"|"off_screen"|"always"
+---@field treesitter boolean
+---@field style "fg"|"tinted"|"muted"
+---@class Glose.FooterConfig
+---@field enabled boolean
+---@field show_desc boolean
+
+---@class Glose.BasePanelConfig
+---@field border string
+---@field max_width? number
+---@field max_height number
+---@field pad_right number
+---@field scroll_indicator boolean
+---@field close_events string[]
+---@field close_key string
+---@field show_server boolean
+---@field show_filetype boolean
+---@field hide_diagnostic boolean
+
+---@class Glose.HoverConfig : Glose.BasePanelConfig
+---@field show_symbol boolean
+---@field conceal boolean
+---@field confirm_key string
+---@field show_kind_prefix boolean
+---@field footer Glose.FooterConfig
+
+---@class Glose.DiagnosticConfig : Glose.BasePanelConfig
+---@field confirm_key string
+---@field code_action_kinds string[] CodeActionKinds requested for the panel action list; empty/nil shows all
+---@field footer Glose.FooterConfig
+
+---@class Glose.DiagnosticListConfig : Glose.BasePanelConfig
+---@field layout "split"|"float" Bottom split or cursor-anchored float
+---@field height number Fixed height (lines) for the split layout
+---@field confirm_key string
+---@field scope "buffer"|"workspace" Default diagnostic scope
+---@field scope_toggle_key string Key to toggle between buffer and workspace scope
+---@field footer Glose.FooterConfig
+
+---@class Glose.CodeActionConfig : Glose.BasePanelConfig
+---@field footer Glose.FooterConfig
+---@field confirm_key string
+---@field back_key string
+---@field diff_context number
+---@field show_code boolean
+
+---@class Glose.SignatureHelpConfig : Glose.BasePanelConfig
+---@field conceal boolean
+---@field auto boolean
+---@field footer Glose.FooterConfig
+
+---@class Glose.InlayHintConfig
+---@field enabled boolean
+---@field only_current_line boolean
+---@field show_parameter_hints boolean
+---@field show_type_hints boolean
+---@field type_format string
+---@field param_format string
+---@field hide_in_insert boolean
+---@field position string
+---@field badge_alpha number
+---@field param_icon boolean
+---@field type_icon boolean
+---@field type_text boolean
+---@field fn_icon boolean
+---@field fn_return_text boolean
+---@field generic_text boolean
+---@field object_threshold number
+---@field expand_border boolean
+---@field expand_offset number
+
+---@class Glose.DefinitionConfig
+---@field beacon Glose.BeaconConfig
+---@field tagstack boolean
+
+---@class Glose.BeaconConfig
+---@field enabled boolean
+---@field fade_interval number
+---@field fade_step number
+
+---@class Glose.TagDef
+---@field icon string
+---@field hl string
+
+---@class Glose.FloatPanel
+---@field name string
+---@field win number|nil
+---@field buf number|nil
+---@field source_bufnr number|nil
+---@field augroup number|nil
+---@field _enter boolean
+---@field close fun(self: Glose.FloatPanel)
+---@field is_open fun(self: Glose.FloatPanel): boolean
+---@field show fun(self: Glose.FloatPanel, source_bufnr: number, ...)
+---@field build_content fun(self: Glose.FloatPanel, ...): string[], table[]
+---@field get_config fun(self: Glose.FloatPanel): Glose.PanelConfig
+---@field setup_keymaps fun(self: Glose.FloatPanel)
+---@field after_open fun(self: Glose.FloatPanel)
+---@field apply_extmarks fun(self: Glose.FloatPanel, ext_list: table[], lines: string[])
+---@field resize fun(self: Glose.FloatPanel, w: number, h: number)
+---@field append_lines fun(self: Glose.FloatPanel, lines: string[])
+---@field _actions table[]|nil
+---@field _meta table[]|nil
+---@field _meta_count number|nil
+---@field _cursor_pos number[]|nil
+---@field _action_start_line number
+
+---@class Glose.PanelConfig
+---@field border string
+---@field max_width number
+---@field max_height number
+---@field pad_right number
+---@field min_width? number
+---@field min_height? number
+---@field extra_height? number
+---@field close_key string
+---@field close_events string[]
+---@field scroll_indicator boolean
+---@field conceal? boolean
+---@field cursorline? boolean
+---@field enter? boolean
+---@field diff_context? number
+---@field confirm_key? string
+---@field back_key? string
+---@field hide_diagnostic? boolean
+---@field show_kind_prefix? boolean
+---@field footer? Glose.FooterConfig
+
+---@class Glose.PreviewManager
+---@field panel Glose.FloatPanel
+---@field action_cache table[]
+---@field resolve_cache table<number, table>
+---@field diff_cache table<number, table>
+---@field current_idx number
+---@field updating boolean
+---@field list_end_line number

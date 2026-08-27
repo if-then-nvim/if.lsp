@@ -3,6 +3,7 @@ local M = {}
 local glyph = require "glose.glyph"
 local footer = require "glose.ui.footer"
 local FloatPanel = require "glose.ui.float"
+local lsp = require "glose.util.lsp"
 
 local HoverPanel = setmetatable({}, { __index = FloatPanel })
 HoverPanel.__index = HoverPanel
@@ -278,30 +279,33 @@ function M.hover()
   end
 
   local source_bufnr = vim.api.nvim_get_current_buf()
-  local clients = vim.lsp.get_clients { bufnr = source_bufnr, method = "textDocument/hover" }
-  if #clients == 0 then
-    return
-  end
 
-  local client = clients[1]
-  local params = vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16")
-
-  client:request("textDocument/hover", params, function(err, result)
-    if err or not result or not result.contents then
-      return
+  lsp.request_first(source_bufnr, "textDocument/hover", function(client)
+    return vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16")
+  end, function(result)
+    local val = result and result.contents
+    if not val then
+      return false
     end
-    local val = result.contents
-    if type(val) == "string" and #val == 0 then
-      return
+    if type(val) == "string" then
+      return #val > 0
     end
-    if type(val) == "table" and val.value and #val.value == 0 then
-      return
+    if type(val) == "table" then
+      if val.value then
+        return #val.value > 0
+      end
+      if vim.islist(val) then
+        return #val > 0
+      end
     end
-
+    return true
+  end, function(result, client)
     vim.schedule(function()
       panel:show(source_bufnr, result.contents, client.name or "LSP")
     end)
-  end, source_bufnr)
+  end, function()
+    vim.notify("Glose: No hover information available", vim.log.levels.INFO)
+  end)
 end
 
 return setmetatable(M, {

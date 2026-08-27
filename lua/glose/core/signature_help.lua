@@ -4,6 +4,7 @@ local glyph = require "glose.glyph"
 local footer = require "glose.ui.footer"
 local window = require "glose.ui.window"
 local FloatPanel = require "glose.ui.float"
+local lsp = require "glose.util.lsp"
 
 local SignatureHelpPanel = setmetatable({}, { __index = FloatPanel })
 SignatureHelpPanel.__index = SignatureHelpPanel
@@ -29,10 +30,15 @@ function SignatureHelpPanel:build_content(result, server_name)
   self._server_name = server_name
 
   local ft = vim.api.nvim_get_option_value("filetype", { buf = self.source_bufnr })
-  local clients = vim.lsp.get_clients { bufnr = self.source_bufnr, method = "textDocument/signatureHelp" }
-  local triggers
-  if clients[1] and clients[1].server_capabilities.signatureHelpProvider then
-    triggers = clients[1].server_capabilities.signatureHelpProvider.triggerCharacters
+  local triggers = {}
+  for _, client in ipairs(vim.lsp.get_clients { bufnr = self.source_bufnr, method = "textDocument/signatureHelp" }) do
+    local provider = client.server_capabilities.signatureHelpProvider
+    for _, ch in ipairs(provider and provider.triggerCharacters or {}) do
+      triggers[#triggers + 1] = ch
+    end
+  end
+  if #triggers == 0 then
+    triggers = nil
   end
 
   local lines, hl = vim.lsp.util.convert_signature_help_to_markdown_lines(result, ft, triggers)
@@ -210,23 +216,11 @@ function SignatureHelpPanel:close()
 end
 
 local function request_signature_help(bufnr)
-  local clients = vim.lsp.get_clients { bufnr = bufnr, method = "textDocument/signatureHelp" }
-  if #clients == 0 then
-    return
-  end
-
-  local client = clients[1]
-  local params = vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16")
-
-  client:request("textDocument/signatureHelp", params, function(err, result)
-    if err or not result or not result.signatures or #result.signatures == 0 then
-      if panel:is_open() then
-        vim.schedule(function()
-          panel:close()
-        end)
-      end
-      return
-    end
+  lsp.request_first(bufnr, "textDocument/signatureHelp", function(client)
+    return vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16")
+  end, function(result)
+    return result ~= nil and result.signatures ~= nil and #result.signatures > 0
+  end, function(result, client)
     if panel:is_open() and panel._active_sig then
       result.activeSignature = panel._active_sig
     else
@@ -238,7 +232,13 @@ local function request_signature_help(bufnr)
       end
       panel:show(bufnr, result, client.name or "LSP")
     end)
-  end, bufnr)
+  end, function()
+    if panel:is_open() then
+      vim.schedule(function()
+        panel:close()
+      end)
+    end
+  end)
 end
 
 function M.signature_help()

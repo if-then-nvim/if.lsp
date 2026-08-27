@@ -1,14 +1,9 @@
 local M = {}
 
+local lsp = require "glose.util.lsp"
+
 function M.goto_definition()
   local cfg = require("glose.config").get()
-  local clients = vim.lsp.get_clients { bufnr = 0, method = "textDocument/definition" }
-  if #clients == 0 then
-    vim.notify("No LSP client supports goto definition", vim.log.levels.WARN)
-    return
-  end
-  local client = clients[1]
-  local params = vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16")
 
   vim.cmd "normal! m'"
 
@@ -16,16 +11,17 @@ function M.goto_definition()
   local from_pos = vim.api.nvim_win_get_cursor(0)
   local from_word = vim.fn.expand "<cword>"
 
-  client:request("textDocument/definition", params, function(err, result)
-    if err then
-      vim.notify("LSP: " .. err.message, vim.log.levels.ERROR)
-      return
+  lsp.request_first(from_bufnr, "textDocument/definition", function(client)
+    return vim.lsp.util.make_position_params(0, client.offset_encoding or "utf-16")
+  end, function(result)
+    if not result then
+      return false
     end
-    if not result or (vim.islist(result) and #result == 0) then
-      vim.notify("No definition found", vim.log.levels.INFO)
-      return
+    if vim.islist(result) then
+      return #result > 0
     end
-
+    return true
+  end, function(result)
     local item = vim.islist(result) and result[1] or result
     local uri = item.targetUri or item.uri
     local range = item.targetSelectionRange or item.targetRange or item.range
@@ -54,7 +50,9 @@ function M.goto_definition()
     vim.schedule(function()
       require("glose.ui.beacon").beacon(target_bufnr, target_lnum, target_col)
     end)
-  end, from_bufnr)
+  end, function()
+    vim.notify("No definition found", vim.log.levels.INFO)
+  end)
 end
 
 return setmetatable(M, {

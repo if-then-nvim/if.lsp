@@ -59,6 +59,10 @@ local defaults = {
     internal = "󰒃",
   },
 
+  rename = {
+    summary = "󰑕",
+  },
+
   footer = {
     enter = "󰌑",
     move = "↕",

@@ -189,6 +189,7 @@ function M.setup()
     IfLspHoverKindModule = { link = "@module" },
     IfLspBeacon = { link = "Search" },
     IfLspActionNumber = { link = "Number" },
+    IfLspRenameSummary = { link = "Title" },
     IfLspDiffAdd = { link = "DiffAdd" },
     IfLspDiffAddSign = { link = "Added" },
     IfLspDiffDelete = { link = "DiffDelete" },

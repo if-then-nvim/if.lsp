@@ -38,6 +38,19 @@ M.defaults = {
     hide_diagnostic = false,
     footer = { enabled = true, show_desc = true },
   },
+  rename = {
+    border = "single",
+    close_key = "q",
+    confirm_key = "<CR>",
+    preview = true,
+    diff_context = 3,
+    select_all = true,
+    min_width = 24,
+    max_width = 0.8,
+    max_height = 0.4,
+    footer = { enabled = true, show_desc = false },
+  },
+
   code_action = {
     border = "single",
     max_height = 0.4,

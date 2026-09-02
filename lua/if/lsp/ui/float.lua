@@ -107,13 +107,19 @@ function FloatPanel:open_win(lines)
   vim.api.nvim_set_option_value("signcolumn", "yes", { win = self.win })
   vim.api.nvim_set_option_value("wrap", true, { win = self.win })
 
-  vim.bo[self.buf].modifiable = false
-  vim.api.nvim_create_autocmd("InsertEnter", {
-    buffer = self.buf,
-    callback = function()
-      vim.cmd.stopinsert()
-    end,
-  })
+  -- An editable panel is one the user types into; the rest are read-only and
+  -- kick you back out of insert mode if you land there by accident.
+  if cfg.editable then
+    vim.bo[self.buf].modifiable = true
+  else
+    vim.bo[self.buf].modifiable = false
+    vim.api.nvim_create_autocmd("InsertEnter", {
+      buffer = self.buf,
+      callback = function()
+        vim.cmd.stopinsert()
+      end,
+    })
+  end
 
   if cfg.conceal then
     vim.api.nvim_set_option_value("conceallevel", 2, { win = self.win })

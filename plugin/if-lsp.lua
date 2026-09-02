@@ -13,6 +13,9 @@ local subcmds = {
   code_action = function(l)
     l.code_action()
   end,
+  rename = function(l)
+    l.rename()
+  end,
   signature_help = function(l)
     l.signature_help()
   end,

@@ -41,6 +41,7 @@ IfLsp.hover()
 IfLsp.definition()
 IfLsp.code_action()
 IfLsp.signature_help()
+IfLsp.rename()
 
 IfLsp.diagnostic.goto_next()
 IfLsp.diagnostic.goto_prev()
@@ -54,11 +55,12 @@ IfLsp.scope.toggle()
 vim.keymap.set("n", "K", IfLsp.hover)
 vim.keymap.set("n", "gd", IfLsp.definition)
 vim.keymap.set("n", "<Leader>ca", IfLsp.code_action)
+vim.keymap.set("n", "<Leader>rn", IfLsp.rename)
 vim.keymap.set("n", "]d", IfLsp.diagnostic.goto_next)
 vim.keymap.set("n", "[d", IfLsp.diagnostic.goto_prev)
 ```
 
-`:IfLsp` runs hover; `:IfLsp {hover,definition,code_action,signature_help,inlay_hint,scope}`
+`:IfLsp` runs hover; `:IfLsp {hover,definition,code_action,rename,signature_help,inlay_hint,scope}`
 reaches the rest.
 
 ## Configuration
@@ -70,6 +72,7 @@ feature has its own table:
 ```lua
 opts = {
   hover = { show_kind_prefix = false },
+  rename = { preview = true, diff_context = 3 },
   scope = { biscuit = { enabled = true, visible_mode = "hover" } },
   inlay_hint = { param_icon = true, object_threshold = 3 },
   signature_help = { auto = false },
@@ -77,6 +80,10 @@ opts = {
   glyph = { hover_kind = { alias = "A" } },
 }
 ```
+
+`rename` asks the server what the edit would be and shows it as a diff —
+how many places, in how many files — before anything is written. Set
+`preview = false` to skip straight to applying it.
 
 Hover responses that carry a kind prefix — `(alias)`, `(method)` — get an
 icon in the sign column and their own highlight, with the prefix text

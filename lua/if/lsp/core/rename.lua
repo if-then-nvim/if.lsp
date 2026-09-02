@@ -103,7 +103,7 @@ function PreviewPanel:get_config()
 end
 
 function PreviewPanel:build_content(diffs, old_name, new_name)
-  local lines, extmarks = diff.build_lines(diffs)
+  local lines, extmarks, ft, code_info = diff.build_lines(diffs)
 
   -- compute() hands back a unified diff per file, as text. Added lines are
   -- the ones that carry the new name; the +++ header is not one of them.
@@ -137,6 +137,10 @@ function PreviewPanel:build_content(diffs, old_name, new_name)
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
   vim.bo[self.buf].modifiable = false
   vim.bo[self.buf].buftype = "nofile"
+
+  -- Tree-sitter over the added and removed text, on its own namespace, two
+  -- rows down for the summary and the blank line above the diff.
+  diff.apply_syntax(self.buf, code_info, ft, 2)
 
   return lines, extmarks
 end

@@ -6,7 +6,7 @@ globals:
     any: true
   bit:
     any: true
-  Glose:
+  IfLsp:
     any: true
   describe:
     any: true

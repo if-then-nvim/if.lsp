@@ -1,0 +1,163 @@
+---@meta
+
+---@class IfLsp.Config
+---@field hover IfLsp.HoverConfig
+---@field diagnostic IfLsp.DiagnosticConfig
+---@field diagnostic_list IfLsp.DiagnosticListConfig
+---@field definition IfLsp.DefinitionConfig
+---@field code_action IfLsp.CodeActionConfig
+---@field signature_help IfLsp.SignatureHelpConfig
+---@field inlay_hint IfLsp.InlayHintConfig
+---@field scope IfLsp.ScopeConfig
+---@field symbol_icons table<string, string>
+---@field parsers table<string, IfLsp.TagDef>
+---@field highlights table<string, table>
+---@field glyph table
+
+---@class IfLsp.ScopeConfig
+---@field enabled boolean
+---@field separator string
+---@field depth_limit number
+---@field depth_limit_indicator string
+---@field safe_output boolean
+---@field lazy_update boolean
+---@field biscuit IfLsp.ScopeBiscuitConfig
+
+---@class IfLsp.ScopeBiscuitConfig
+---@field enabled boolean
+---@field visible_mode "hover"|"off_screen"|"always"
+---@field treesitter boolean
+---@field style "fg"|"tinted"|"muted"
+---@class IfLsp.FooterConfig
+---@field enabled boolean
+---@field show_desc boolean
+
+---@class IfLsp.BasePanelConfig
+---@field border string
+---@field max_width? number
+---@field max_height number
+---@field pad_right number
+---@field scroll_indicator boolean
+---@field close_events string[]
+---@field close_key string
+---@field show_server boolean
+---@field show_filetype boolean
+---@field hide_diagnostic boolean
+
+---@class IfLsp.HoverConfig : IfLsp.BasePanelConfig
+---@field show_symbol boolean
+---@field conceal boolean
+---@field confirm_key string
+---@field show_kind_prefix boolean
+---@field footer IfLsp.FooterConfig
+
+---@class IfLsp.DiagnosticConfig : IfLsp.BasePanelConfig
+---@field confirm_key string
+---@field code_action_kinds string[] CodeActionKinds requested for the panel action list; empty/nil shows all
+---@field footer IfLsp.FooterConfig
+
+---@class IfLsp.DiagnosticListConfig : IfLsp.BasePanelConfig
+---@field layout "split"|"float" Bottom split or cursor-anchored float
+---@field height number Fixed height (lines) for the split layout
+---@field confirm_key string
+---@field scope "buffer"|"workspace" Default diagnostic scope
+---@field scope_toggle_key string Key to toggle between buffer and workspace scope
+---@field footer IfLsp.FooterConfig
+
+---@class IfLsp.CodeActionConfig : IfLsp.BasePanelConfig
+---@field footer IfLsp.FooterConfig
+---@field confirm_key string
+---@field back_key string
+---@field diff_context number
+---@field show_code boolean
+
+---@class IfLsp.SignatureHelpConfig : IfLsp.BasePanelConfig
+---@field conceal boolean
+---@field auto boolean
+---@field footer IfLsp.FooterConfig
+
+---@class IfLsp.InlayHintConfig
+---@field enabled boolean
+---@field only_current_line boolean
+---@field show_parameter_hints boolean
+---@field show_type_hints boolean
+---@field type_format string
+---@field param_format string
+---@field hide_in_insert boolean
+---@field position string
+---@field badge_alpha number
+---@field param_icon boolean
+---@field type_icon boolean
+---@field type_text boolean
+---@field fn_icon boolean
+---@field fn_return_text boolean
+---@field generic_text boolean
+---@field object_threshold number
+---@field expand_border boolean
+---@field expand_offset number
+
+---@class IfLsp.DefinitionConfig
+---@field beacon IfLsp.BeaconConfig
+---@field tagstack boolean
+
+---@class IfLsp.BeaconConfig
+---@field enabled boolean
+---@field fade_interval number
+---@field fade_step number
+
+---@class IfLsp.TagDef
+---@field icon string
+---@field hl string
+
+---@class IfLsp.FloatPanel
+---@field name string
+---@field win number|nil
+---@field buf number|nil
+---@field source_bufnr number|nil
+---@field augroup number|nil
+---@field _enter boolean
+---@field close fun(self: IfLsp.FloatPanel)
+---@field is_open fun(self: IfLsp.FloatPanel): boolean
+---@field show fun(self: IfLsp.FloatPanel, source_bufnr: number, ...)
+---@field build_content fun(self: IfLsp.FloatPanel, ...): string[], table[]
+---@field get_config fun(self: IfLsp.FloatPanel): IfLsp.PanelConfig
+---@field setup_keymaps fun(self: IfLsp.FloatPanel)
+---@field after_open fun(self: IfLsp.FloatPanel)
+---@field apply_extmarks fun(self: IfLsp.FloatPanel, ext_list: table[], lines: string[])
+---@field resize fun(self: IfLsp.FloatPanel, w: number, h: number)
+---@field append_lines fun(self: IfLsp.FloatPanel, lines: string[])
+---@field _actions table[]|nil
+---@field _meta table[]|nil
+---@field _meta_count number|nil
+---@field _cursor_pos number[]|nil
+---@field _action_start_line number
+
+---@class IfLsp.PanelConfig
+---@field border string
+---@field max_width number
+---@field max_height number
+---@field pad_right number
+---@field min_width? number
+---@field min_height? number
+---@field extra_height? number
+---@field close_key string
+---@field close_events string[]
+---@field scroll_indicator boolean
+---@field conceal? boolean
+---@field cursorline? boolean
+---@field enter? boolean
+---@field diff_context? number
+---@field confirm_key? string
+---@field back_key? string
+---@field hide_diagnostic? boolean
+---@field show_kind_prefix? boolean
+---@field footer? IfLsp.FooterConfig
+
+---@class IfLsp.PreviewManager
+---@field panel IfLsp.FloatPanel
+---@field action_cache table[]
+---@field resolve_cache table<number, table>
+---@field diff_cache table<number, table>
+---@field current_idx number
+---@field updating boolean
+---@field list_end_line number

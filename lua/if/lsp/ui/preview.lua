@@ -26,6 +26,7 @@ function PreviewManager:reset()
   self.updating = false
   self.list_end_line = 0
   self.base_width = 0
+  self.locked_width = nil
 end
 
 function PreviewManager:attach(actions, list_end_line)
@@ -88,8 +89,12 @@ function PreviewManager:update(idx)
         max_content_len = w
       end
     end
+    -- Grow to fit, never shrink. Recomputing per selection made the panel
+    -- breathe in and out as you moved down the list; clamping it to the first
+    -- preview instead wrapped every diff wider than that one.
     local new_width = math.min(max_content_len + sign_width + (cfg.pad_right or 0), max_width)
-    new_width = math.max(new_width, base)
+    new_width = math.max(new_width, base, preview_mgr.locked_width or 0)
+    preview_mgr.locked_width = new_width
 
     vim.bo[panel.buf].modifiable = true
 
@@ -276,8 +281,8 @@ function PreviewManager:clear_preview()
 
   if panel:is_open() then
     local new_height = vim.api.nvim_buf_line_count(panel.buf)
-    local base = self.base_width or vim.api.nvim_win_get_width(panel.win)
-    panel:resize(base, new_height)
+    local width = self.locked_width or self.base_width or vim.api.nvim_win_get_width(panel.win)
+    panel:resize(width, new_height)
   end
 end
 

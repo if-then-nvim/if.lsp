@@ -32,7 +32,13 @@ function InputPanel:get_config()
 end
 
 function InputPanel:build_content(placeholder)
-  return { placeholder }, {}
+  local lines = { placeholder }
+
+  self.buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
+  vim.bo[self.buf].buftype = "nofile"
+
+  return lines, {}
 end
 
 function InputPanel:setup_keymaps()
@@ -120,13 +126,17 @@ function PreviewPanel:build_content(diffs, old_name, new_name)
     files,
     files == 1 and "file" or "files"
   )
+  -- extmarks are positional: entry i decorates line i, so prepending lines
+  -- means prepending the same number of entries.
   table.insert(lines, 1, summary)
   table.insert(lines, 2, "")
+  table.insert(extmarks, 1, {})
+  table.insert(extmarks, 1, { text_hl = "IfLspRenameSummary" })
 
-  for _, m in ipairs(extmarks) do
-    m.line = m.line + 2
-  end
-  table.insert(extmarks, 1, { line = 0, col = 0, end_col = #summary, hl = "IfLspRenameSummary" })
+  self.buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
+  vim.bo[self.buf].modifiable = false
+  vim.bo[self.buf].buftype = "nofile"
 
   return lines, extmarks
 end

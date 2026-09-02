@@ -12,10 +12,18 @@ local panel = CodeActionPanel:new "code_action"
 local preview = PreviewManager:new(panel)
 
 function CodeActionPanel:get_config()
-  return vim.tbl_extend("force", FloatPanel.get_config(self), {
+  local cfg = FloatPanel.get_config(self)
+  -- Pin the width to the cap. Sized to its content, the panel was one width
+  -- with a diff preview under the list and a narrower one without, so it
+  -- jumped as you moved between actions that carry an edit and ones that do
+  -- not — and at the narrow width the longer titles wrapped.
+  local columns = vim.api.nvim_get_option_value("columns", {})
+  local fixed = cfg.max_width and math.floor(columns * cfg.max_width) or nil
+
+  return vim.tbl_extend("force", cfg, {
     cursorline = true,
     enter = true,
-    min_width = 30,
+    min_width = fixed or 30,
     extra_height = 2,
   })
 end

@@ -175,26 +175,34 @@ function M.apply_syntax(buf, code_info, ft, buf_offset)
     if ok and parser then
       local trees = parser:parse()
       if trees and #trees > 0 then
-        local captures = {}
+        -- A node often carries more than one capture over the same span:
+        -- a comment is both @comment and @spell. Keyed on the range alone the
+        -- last one won, and since @spell has no colour of its own that left
+        -- every comment unpainted. Keep them all, in the order the query
+        -- yields them, and let the later ones draw on top.
+        local captures, seen = {}, {}
         for id, node in query:iter_captures(trees[1]:root(), group.text) do
           local name = "@" .. query.captures[id]
           local sr, sc, er, ec = node:range()
-          local key = sr .. ":" .. sc .. ":" .. er .. ":" .. ec
-          captures[key] = { name = name, sr = sr, sc = sc, er = er, ec = ec }
+          local key = table.concat({ sr, sc, er, ec, name }, ":")
+          if not seen[key] then
+            seen[key] = true
+            captures[#captures + 1] = { name = name, sr = sr, sc = sc, er = er, ec = ec, order = #captures }
+          end
         end
-        for _, cap in pairs(captures) do
+        for _, cap in ipairs(captures) do
           local buf_sr = group.offsets[cap.sr + 1]
           local buf_er = group.offsets[cap.er + 1]
           -- A context line sits in both the removed and the added text, so
           -- without this every one of its captures is drawn twice.
-          local seen = buf_sr and buf_er and table.concat({ buf_sr, cap.sc, buf_er, cap.ec, cap.name }, ":")
-          if seen and not painted[seen] then
-            painted[seen] = true
+          local mark = buf_sr and buf_er and table.concat({ buf_sr, cap.sc, buf_er, cap.ec, cap.name }, ":")
+          if mark and not painted[mark] then
+            painted[mark] = true
             pcall(vim.api.nvim_buf_set_extmark, buf, syntax_ns, buf_offset + buf_sr, cap.sc, {
               end_row = buf_offset + buf_er,
               end_col = cap.ec,
               hl_group = cap.name,
-              priority = 50,
+              priority = 50 + cap.order,
             })
           end
         end

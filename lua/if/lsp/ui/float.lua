@@ -89,15 +89,18 @@ function FloatPanel:open_win(lines)
   local enter = cfg.enter or false
   self._enter = enter
 
-  self.win = vim.api.nvim_open_win(self.buf, enter, {
-    relative = "cursor",
-    row = 1,
-    col = 0,
-    width = win_opts.width,
-    height = win_opts.height,
-    border = cfg.border,
-    style = "minimal",
-  })
+  local place = self:placement(win_opts.width, win_opts.height)
+  self.win = vim.api.nvim_open_win(
+    self.buf,
+    enter,
+    vim.tbl_extend("force", place, {
+      relative = "cursor",
+      width = win_opts.width,
+      height = place.height,
+      border = cfg.border,
+      style = "minimal",
+    })
+  )
 
   vim.api.nvim_set_option_value(
     "winhighlight",
@@ -208,7 +211,45 @@ function FloatPanel:resize_height(h)
   if not self:is_open() then
     return
   end
-  vim.api.nvim_win_set_config(self.win, { height = h })
+  local width = vim.api.nvim_win_get_width(self.win)
+  local place = self:placement(width, h)
+  vim.api.nvim_win_set_config(self.win, vim.tbl_extend("force", place, { relative = "cursor", width = width }))
+end
+
+---Where the window goes, given how big it wants to be.
+---
+---A float anchored a line under the cursor has nowhere to grow once the
+---cursor is near the bottom of the screen: it opens clipped and stays that
+---way however tall the content gets. So the side with more room wins, and
+---the height is trimmed to whatever that side actually has.
+---@param width integer
+---@param height integer
+---@return { row: integer, col: integer, anchor: string, height: integer }
+function FloatPanel:placement(width, height)
+  local border = (self:get_config().border or "none") ~= "none" and 2 or 0
+  local screen_row = vim.fn.winline() + vim.fn.win_screenpos(0)[1] - 1
+  local screen_col = vim.fn.wincol() + vim.fn.win_screenpos(0)[2] - 1
+  local total_rows = vim.o.lines - vim.o.cmdheight - (vim.o.laststatus > 0 and 1 or 0)
+
+  local below = total_rows - screen_row - border
+  local above = screen_row - 1 - border
+
+  local row, anchor, fitted
+  if height <= below or below >= above then
+    row, anchor, fitted = 1, "NW", math.min(height, math.max(below, 1))
+  else
+    row, anchor, fitted = 0, "SW", math.min(height, math.max(above, 1))
+  end
+
+  -- Keep the right edge on screen; a panel wider than the terminal starts at
+  -- column one rather than off the left of it.
+  local col = 0
+  local overflow = (screen_col + width + border) - vim.o.columns
+  if overflow > 0 then
+    col = -math.min(overflow, screen_col - 1)
+  end
+
+  return { row = row, col = col, anchor = anchor, height = fitted }
 end
 
 function FloatPanel:append_lines(lines)

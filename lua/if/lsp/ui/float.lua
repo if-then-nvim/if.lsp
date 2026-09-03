@@ -15,6 +15,7 @@ function FloatPanel:new(name)
     source_bufnr = nil,
     augroup = nil,
     _enter = false,
+    _place = nil,
   }, self)
 end
 
@@ -30,6 +31,7 @@ function FloatPanel:close()
   self.buf = nil
   self.source_bufnr = nil
   self.augroup = nil
+  self._place = nil
 
   if source and vim.api.nvim_buf_is_valid(source) then
     pcall(vim.diagnostic.enable, true, { bufnr = source })
@@ -90,17 +92,17 @@ function FloatPanel:open_win(lines)
   self._enter = enter
 
   local place = self:placement(win_opts.width, win_opts.height)
-  self.win = vim.api.nvim_open_win(
-    self.buf,
-    enter,
-    vim.tbl_extend("force", place, {
-      relative = "cursor",
-      width = win_opts.width,
-      height = place.height,
-      border = cfg.border,
-      style = "minimal",
-    })
-  )
+  self._place = place
+  self.win = vim.api.nvim_open_win(self.buf, enter, {
+    relative = "cursor",
+    row = place.row,
+    col = place.col,
+    anchor = place.anchor,
+    width = win_opts.width,
+    height = place.height,
+    border = cfg.border,
+    style = "minimal",
+  })
 
   vim.api.nvim_set_option_value(
     "winhighlight",
@@ -211,9 +213,16 @@ function FloatPanel:resize_height(h)
   if not self:is_open() then
     return
   end
-  local width = vim.api.nvim_win_get_width(self.win)
-  local place = self:placement(width, h)
-  vim.api.nvim_win_set_config(self.win, vim.tbl_extend("force", place, { relative = "cursor", width = width }))
+  local place = self._place
+  if not place then
+    vim.api.nvim_win_set_config(self.win, { height = h })
+    return
+  end
+  -- Height and nothing else. The window is positioned relative to the cursor,
+  -- and once you are inside the panel the cursor is one of its own lines — so
+  -- passing relative again re-anchors it to wherever the selection has got to
+  -- and the panel walks down the screen as you move through the list.
+  vim.api.nvim_win_set_config(self.win, { height = math.max(1, math.min(h, place.room)) })
 end
 
 ---Where the window goes, given how big it wants to be.
@@ -234,12 +243,13 @@ function FloatPanel:placement(width, height)
   local below = total_rows - screen_row - border
   local above = screen_row - 1 - border
 
-  local row, anchor, fitted
+  local row, anchor, room
   if height <= below or below >= above then
-    row, anchor, fitted = 1, "NW", math.min(height, math.max(below, 1))
+    row, anchor, room = 1, "NW", below
   else
-    row, anchor, fitted = 0, "SW", math.min(height, math.max(above, 1))
+    row, anchor, room = 0, "SW", above
   end
+  room = math.max(room, 1)
 
   -- Keep the right edge on screen; a panel wider than the terminal starts at
   -- column one rather than off the left of it.
@@ -249,7 +259,7 @@ function FloatPanel:placement(width, height)
     col = -math.min(overflow, screen_col - 1)
   end
 
-  return { row = row, col = col, anchor = anchor, height = fitted }
+  return { row = row, col = col, anchor = anchor, height = math.min(height, room), room = room }
 end
 
 function FloatPanel:append_lines(lines)

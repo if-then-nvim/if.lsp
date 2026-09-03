@@ -171,24 +171,50 @@ function PreviewManager:update(idx)
     return
   end
 
-  self.updating = true
-  local loading_lines = { "Resolving..." }
-  local loading_ext =
-    { { sign = { icon = glyph.ui.loading, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
-  render_preview(loading_lines, loading_ext)
-  self.updating = true
-
   local client = vim.lsp.get_client_by_id(entry.client_id)
   if not client then
     self.updating = false
     return
   end
 
+  ---An action with nothing to show is not a failure. A command runs on the
+  ---server and has no edit to draw; so does one from a server that cannot
+  ---resolve. Say so in the same voice as the other two empty states.
+  ---@param cached lsp.CodeAction|lsp.Command
+  local function show_no_preview(cached)
+    preview_mgr.resolve_cache[idx] = cached
+    local lines = { "No preview available — Enter to execute" }
+    local ext = { { sign = { icon = glyph.ui.info, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+    preview_mgr.diff_cache[idx] = { lines = lines, extmarks = ext }
+    preview_mgr.updating = false
+    if preview_mgr.current_idx == idx then
+      render_preview(lines, ext)
+    end
+  end
+
+  -- Neovim's own code_action checks both of these before spending a round
+  -- trip, and so should this.
+  if action.command or not client:supports_method "codeAction/resolve" then
+    show_no_preview(action)
+    return
+  end
+
+  self.updating = true
+  local loading_lines = { "Resolving..." }
+  local loading_ext =
+    { { sign = { icon = glyph.ui.loading, hl = "DiagnosticInfo" }, line_hl = "Comment", text_hl = "Comment" } }
+  render_preview(loading_lines, loading_ext)
+
   client:request("codeAction/resolve", action, function(err, resolved)
     vim.schedule(function()
       if err or not resolved then
+        -- Only a real error when the action is unusable without the resolve.
+        if action.edit or action.command then
+          show_no_preview(action)
+          return
+        end
         preview_mgr.resolve_cache[idx] = action
-        local lines = { "Resolve failed" }
+        local lines = { err and ((err.code or "?") .. ": " .. (err.message or "resolve failed")) or "Resolve failed" }
         local ext = {
           {
             sign = { icon = glyph.ui.error, hl = "DiagnosticError" },

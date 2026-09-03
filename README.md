@@ -10,6 +10,10 @@
   signature help, inlay hints and scope breadcrumbs in one place.
 </p>
 
+<p align="center">
+  <img src="./assets/hero.webp" width="100%" alt="hover, rename, diagnostics and code actions">
+</p>
+
 ## Requirements
 
 - Neovim >= 0.11 (`client:request`, `vim.diagnostic.jump`, `vim.hl`)

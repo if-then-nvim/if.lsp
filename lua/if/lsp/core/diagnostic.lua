@@ -27,9 +27,18 @@ local function get_client_name(namespace_id, bufnr)
 end
 
 function DiagnosticPanel:get_config()
-  return vim.tbl_extend("force", FloatPanel.get_config(self), {
+  local cfg = FloatPanel.get_config(self)
+  -- Pin the width to the cap. The panel opens on the diagnostic alone and
+  -- the code actions arrive afterwards, appended without a resize — so a
+  -- width taken from the message left every action title longer than it
+  -- wrapped onto a second line with no number beside it.
+  local columns = vim.api.nvim_get_option_value("columns", {})
+  local fixed = cfg.max_width and math.floor(columns * cfg.max_width) or nil
+
+  return vim.tbl_extend("force", cfg, {
     enter = false,
     diff_context = 3,
+    min_width = fixed or cfg.min_width,
   })
 end
 

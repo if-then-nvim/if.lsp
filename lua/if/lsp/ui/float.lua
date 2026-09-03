@@ -200,6 +200,17 @@ function FloatPanel:resize(w, h)
   vim.api.nvim_win_set_config(self.win, { width = w, height = h })
 end
 
+---Height only. The width a panel opens at is the width it keeps: letting the
+---preview recompute it meant the window changed size under the cursor as you
+---moved between actions that carry a diff and ones that do not.
+---@param h integer
+function FloatPanel:resize_height(h)
+  if not self:is_open() then
+    return
+  end
+  vim.api.nvim_win_set_config(self.win, { height = h })
+end
+
 function FloatPanel:append_lines(lines)
   if not self.buf or not vim.api.nvim_buf_is_valid(self.buf) then
     return

@@ -25,16 +25,11 @@ function PreviewManager:reset()
   self.current_idx = 0
   self.updating = false
   self.list_end_line = 0
-  self.base_width = 0
-  self.locked_width = nil
 end
 
 function PreviewManager:attach(actions, list_end_line)
   self.action_cache = actions
   self.list_end_line = list_end_line
-  if self.panel:is_open() then
-    self.base_width = vim.api.nvim_win_get_width(self.panel.win)
-  end
 end
 
 function PreviewManager:get_resolved(idx)
@@ -78,23 +73,9 @@ function PreviewManager:update(idx)
     end
 
     local cfg = panel:get_config()
-    local columns = vim.api.nvim_get_option_value("columns", {})
-    local max_width = cfg.max_width and math.floor(columns * cfg.max_width) or columns
-    local sign_width = 2
-    local base = preview_mgr.base_width or vim.api.nvim_win_get_width(panel.win)
-    local max_content_len = base - sign_width
-    for _, l in ipairs(diff_lines) do
-      local w = vim.fn.strdisplaywidth(l)
-      if w > max_content_len then
-        max_content_len = w
-      end
-    end
-    -- Grow to fit, never shrink. Recomputing per selection made the panel
-    -- breathe in and out as you moved down the list; clamping it to the first
-    -- preview instead wrapped every diff wider than that one.
-    local new_width = math.min(max_content_len + sign_width + (cfg.pad_right or 0), max_width)
-    new_width = math.max(new_width, base, preview_mgr.locked_width or 0)
-    preview_mgr.locked_width = new_width
+    -- The window keeps whatever width it opened at; only the height follows
+    -- the preview.
+    local new_width = vim.api.nvim_win_get_width(panel.win)
 
     vim.bo[panel.buf].modifiable = true
 
@@ -125,7 +106,7 @@ function PreviewManager:update(idx)
     local max_height = math.floor(editor_lines * cfg.max_height)
     local new_height = math.min(new_total, max_height)
     new_height = math.max(new_height, separator_start + 1)
-    panel:resize(new_width, new_height)
+    panel:resize_height(new_height)
 
     preview_mgr.updating = false
   end
@@ -281,8 +262,7 @@ function PreviewManager:clear_preview()
 
   if panel:is_open() then
     local new_height = vim.api.nvim_buf_line_count(panel.buf)
-    local width = self.locked_width or self.base_width or vim.api.nvim_win_get_width(panel.win)
-    panel:resize(width, new_height)
+    panel:resize_height(new_height)
   end
 end
 

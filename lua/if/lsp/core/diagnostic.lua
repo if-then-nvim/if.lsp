@@ -236,35 +236,65 @@ local function request_code_actions()
   local kinds = require("if.lsp.config").get().diagnostic.code_action_kinds
   local only = (type(kinds) == "table" and #kinds > 0) and kinds or nil
 
-  local params = {
-    textDocument = vim.lsp.util.make_text_document_params(source_bufnr),
-    range = {
-      start = { line = lnum, character = 0 },
-      ["end"] = { line = lnum, character = 0 },
-    },
-    context = {
-      diagnostics = vim.tbl_map(function(d)
-        return {
-          range = {
-            start = { line = d.lnum, character = d.col },
-            ["end"] = { line = d.end_lnum or d.lnum, character = d.end_col or d.col },
-          },
-          severity = d.severity,
-          code = d.code,
-          source = d.source,
-          message = d.message,
-        }
-      end, diagnostics),
-      only = only,
-      triggerKind = 1,
-    },
-  }
+  -- The range has to cover the diagnostics, not just start of their line.
+  -- lua_ls and tsserver answer from context.diagnostics and do not care, but
+  -- rust-analyzer intersects by range and returns nothing at all for a
+  -- zero-width range in the indent — no fix for a missing match arm, no fix
+  -- for anything else either.
+  local last = lnum
+  local first_col, last_col = math.huge, 0
+  for _, d in ipairs(diagnostics) do
+    last = math.max(last, d.end_lnum or d.lnum)
+    first_col = math.min(first_col, d.col)
+    last_col = math.max(last_col, d.end_col or d.col)
+  end
+  if first_col == math.huge then
+    first_col = 0
+  end
+
+  local function to_enc(line, byte_col, encoding)
+    if byte_col <= 0 then
+      return 0
+    end
+    local ok, v = pcall(vim.lsp.util.character_offset, source_bufnr, line, byte_col, encoding)
+    return ok and v or byte_col
+  end
+
+  local function params_for(client)
+    local enc = client.offset_encoding or "utf-16"
+    return {
+      textDocument = vim.lsp.util.make_text_document_params(source_bufnr),
+      range = {
+        start = { line = lnum, character = to_enc(lnum, first_col, enc) },
+        ["end"] = { line = last, character = to_enc(last, last_col, enc) },
+      },
+      context = {
+        diagnostics = vim.tbl_map(function(d)
+          return {
+            range = {
+              start = { line = d.lnum, character = to_enc(d.lnum, d.col, enc) },
+              ["end"] = {
+                line = d.end_lnum or d.lnum,
+                character = to_enc(d.end_lnum or d.lnum, d.end_col or d.col, enc),
+              },
+            },
+            severity = d.severity,
+            code = d.code,
+            source = d.source,
+            message = d.message,
+          }
+        end, diagnostics),
+        only = only,
+        triggerKind = 1,
+      },
+    }
+  end
 
   local pending = #clients
   local all_actions = {}
 
   for _, client in ipairs(clients) do
-    client:request("textDocument/codeAction", params, function(err, result)
+    client:request("textDocument/codeAction", params_for(client), function(err, result)
       if not err and result then
         for _, action in ipairs(result) do
           table.insert(all_actions, { action = action, client_id = client.id })

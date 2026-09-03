@@ -24,7 +24,7 @@ M.defaults = {
   },
   diagnostic = {
     border = "single",
-    max_height = 0.4,
+    max_height = 0.6,
     max_width = 0.8,
     pad_right = 4,
     scroll_indicator = true,
@@ -49,13 +49,13 @@ M.defaults = {
     select_all = true,
     min_width = 24,
     max_width = 0.8,
-    max_height = 0.4,
+    max_height = 0.6,
     footer = { enabled = true, show_desc = false },
   },
 
   code_action = {
     border = "single",
-    max_height = 0.4,
+    max_height = 0.6,
     max_width = 0.8,
     pad_right = 4,
     scroll_indicator = true,

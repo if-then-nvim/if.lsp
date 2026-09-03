@@ -213,16 +213,17 @@ function FloatPanel:resize_height(h)
   if not self:is_open() then
     return
   end
-  local place = self._place
-  if not place then
-    vim.api.nvim_win_set_config(self.win, { height = h })
-    return
-  end
   -- Height and nothing else. The window is positioned relative to the cursor,
   -- and once you are inside the panel the cursor is one of its own lines — so
   -- passing relative again re-anchors it to wherever the selection has got to
   -- and the panel walks down the screen as you move through the list.
-  vim.api.nvim_win_set_config(self.win, { height = math.max(1, math.min(h, place.room)) })
+  --
+  -- The room measured when the panel opened is not the limit here. A preview
+  -- arriving under a list that already filled the space below the cursor has
+  -- to be able to grow past it, or it sits in the buffer where nobody can see
+  -- it. Clamp to the screen instead, which is the only real bound.
+  local ceiling = vim.o.lines - vim.o.cmdheight - 2
+  vim.api.nvim_win_set_config(self.win, { height = math.max(1, math.min(h, ceiling)) })
 end
 
 ---Where the window goes, given how big it wants to be.
@@ -259,7 +260,7 @@ function FloatPanel:placement(width, height)
     col = -math.min(overflow, screen_col - 1)
   end
 
-  return { row = row, col = col, anchor = anchor, height = math.min(height, room), room = room }
+  return { row = row, col = col, anchor = anchor, height = math.min(height, room) }
 end
 
 function FloatPanel:append_lines(lines)

@@ -54,7 +54,7 @@ IfLsp.scope.toggle()
 ```lua
 vim.keymap.set("n", "K", IfLsp.hover)
 vim.keymap.set("n", "gd", IfLsp.definition)
-vim.keymap.set("n", "<Leader>ca", IfLsp.code_action)
+vim.keymap.set({ "n", "x" }, "<Leader>ca", IfLsp.code_action)
 vim.keymap.set("n", "<Leader>rn", IfLsp.rename)
 vim.keymap.set("n", "]d", IfLsp.diagnostic.goto_next)
 vim.keymap.set("n", "[d", IfLsp.diagnostic.goto_prev)
@@ -62,6 +62,10 @@ vim.keymap.set("n", "[d", IfLsp.diagnostic.goto_prev)
 
 `:IfLsp` runs hover; `:IfLsp {hover,definition,code_action,rename,signature_help,inlay_hint,scope}`
 reaches the rest.
+
+`code_action` takes a range. Map it in visual mode as well, or call
+`:'<,'>IfLsp code_action` — servers offer extract-style refactors only when
+they are told which lines to extract.
 
 ## Configuration
 

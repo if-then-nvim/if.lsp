@@ -10,8 +10,8 @@ local subcmds = {
   definition = function(l)
     l.definition()
   end,
-  code_action = function(l)
-    l.code_action()
+  code_action = function(l, o)
+    l.code_action { range = o.range > 0 }
   end,
   rename = function(l)
     l.rename()
@@ -40,12 +40,13 @@ vim.api.nvim_create_user_command("IfLsp", function(opts)
   local handler = subcmds[subcmd]
 
   if handler then
-    handler(iflsp)
+    handler(iflsp, opts)
   else
     vim.notify("[if.lsp] Unknown subcommand: " .. subcmd, vim.log.levels.ERROR)
   end
 end, {
   nargs = "*",
+  range = true,
   complete = function(arg_lead)
     local subcommands = vim.tbl_keys(subcmds)
     table.sort(subcommands)

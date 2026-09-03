@@ -175,11 +175,27 @@ function CodeActionPanel:after_open()
   }, cfg.footer)
 end
 
-function M.code_action()
+local function selection_bounds(bufnr, mode)
+  local from, to = vim.fn.getpos "v", vim.fn.getpos "."
+  local srow, scol, erow, ecol = from[2], from[3], to[2], to[3]
+  if srow == erow and ecol < scol then
+    scol, ecol = ecol, scol
+  elseif erow < srow then
+    srow, erow = erow, srow
+    scol, ecol = ecol, scol
+  end
+  if mode == "V" then
+    scol = 1
+    ecol = #vim.api.nvim_buf_get_lines(bufnr, erow - 1, erow, true)[1]
+  end
+  return { srow, scol - 1 }, { erow, ecol - 1 }
+end
+
+function M.code_action(opts)
   panel:close()
 
   local source_bufnr = vim.api.nvim_get_current_buf()
-  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+  opts = opts or {}
 
   local clients = vim.lsp.get_clients { bufnr = source_bufnr, method = "textDocument/codeAction" }
   if #clients == 0 then
@@ -187,9 +203,25 @@ function M.code_action()
     return
   end
 
-  local lnum = cursor_pos[1] - 1
-  local col = cursor_pos[2]
-  local diagnostics = vim.diagnostic.get(source_bufnr, { lnum = lnum })
+  local mode = vim.api.nvim_get_mode().mode
+  local live = mode == "v" or mode == "V" or mode == "\22"
+  local from, to
+  local first, last
+  if live then
+    from, to = selection_bounds(source_bufnr, mode)
+    first, last = from[1] - 1, to[1] - 1
+  elseif opts.range then
+    first = vim.api.nvim_buf_get_mark(source_bufnr, "<")[1] - 1
+    last = vim.api.nvim_buf_get_mark(source_bufnr, ">")[1] - 1
+  else
+    first = vim.api.nvim_win_get_cursor(0)[1] - 1
+    last = first
+  end
+
+  local diagnostics = {}
+  for l = first, last do
+    vim.list_extend(diagnostics, vim.diagnostic.get(source_bufnr, { lnum = l }))
+  end
 
   local diag_code = nil
   for _, d in ipairs(diagnostics) do
@@ -199,35 +231,42 @@ function M.code_action()
     end
   end
 
-  local params = {
-    textDocument = vim.lsp.util.make_text_document_params(source_bufnr),
-    range = {
-      start = { line = lnum, character = col },
-      ["end"] = { line = lnum, character = col },
-    },
-    context = {
-      diagnostics = vim.tbl_map(function(d)
-        return {
-          range = {
-            start = { line = d.lnum, character = d.col },
-            ["end"] = { line = d.end_lnum or d.lnum, character = d.end_col or d.col },
-          },
-          severity = d.severity,
-          code = d.code,
-          source = d.source,
-          message = d.message,
-        }
-      end, diagnostics),
-      only = nil,
-      triggerKind = 1,
-    },
+  local context = {
+    diagnostics = vim.tbl_map(function(d)
+      return {
+        range = {
+          start = { line = d.lnum, character = d.col },
+          ["end"] = { line = d.end_lnum or d.lnum, character = d.end_col or d.col },
+        },
+        severity = d.severity,
+        code = d.code,
+        source = d.source,
+        message = d.message,
+      }
+    end, diagnostics),
+    only = nil,
+    triggerKind = 1,
   }
+
+  local function params_for(client)
+    local enc = client.offset_encoding or "utf-16"
+    local p
+    if live or opts.range then
+      p = vim.lsp.util.make_given_range_params(from, to, source_bufnr, enc)
+    else
+      p = vim.lsp.util.make_position_params(0, enc)
+      p.range = { start = p.position, ["end"] = p.position }
+      p.position = nil
+    end
+    p.context = context
+    return p
+  end
 
   local pending = #clients
   local all_actions = {}
 
   for _, client in ipairs(clients) do
-    client:request("textDocument/codeAction", params, function(err, result)
+    client:request("textDocument/codeAction", params_for(client), function(err, result)
       if not err and result then
         for _, action in ipairs(result) do
           table.insert(all_actions, { action = action, client_id = client.id })
@@ -248,7 +287,7 @@ function M.code_action()
 end
 
 return setmetatable(M, {
-  __call = function(_)
-    return M.code_action()
+  __call = function(_, opts)
+    return M.code_action(opts)
   end,
 })

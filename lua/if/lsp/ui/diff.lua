@@ -116,8 +116,12 @@ function M.build_lines(diffs)
           table.insert(del_lines, diff_line:sub(2))
           table.insert(del_offsets, #lines - 1)
         else
+          -- A context line keeps its marker column like the + and - lines do,
+          -- so what goes in the buffer and what goes to the parser start at
+          -- the same character. They used to differ by the leading space,
+          -- which put every highlight on the line one column to the left.
           local content = diff_line:sub(1, 1) == " " and diff_line:sub(2) or diff_line
-          table.insert(lines, diff_line)
+          table.insert(lines, content)
           table.insert(extmarks, {})
           table.insert(del_lines, content)
           table.insert(del_offsets, #lines - 1)
@@ -165,6 +169,7 @@ function M.apply_syntax(buf, code_info, ft, buf_offset)
     table.insert(groups, code_info.add)
   end
 
+  local painted = {}
   for _, group in ipairs(groups) do
     local ok, parser = pcall(vim.treesitter.get_string_parser, group.text, lang)
     if ok and parser then
@@ -180,7 +185,11 @@ function M.apply_syntax(buf, code_info, ft, buf_offset)
         for _, cap in pairs(captures) do
           local buf_sr = group.offsets[cap.sr + 1]
           local buf_er = group.offsets[cap.er + 1]
-          if buf_sr and buf_er then
+          -- A context line sits in both the removed and the added text, so
+          -- without this every one of its captures is drawn twice.
+          local seen = buf_sr and buf_er and table.concat({ buf_sr, cap.sc, buf_er, cap.ec, cap.name }, ":")
+          if seen and not painted[seen] then
+            painted[seen] = true
             pcall(vim.api.nvim_buf_set_extmark, buf, syntax_ns, buf_offset + buf_sr, cap.sc, {
               end_row = buf_offset + buf_er,
               end_col = cap.ec,

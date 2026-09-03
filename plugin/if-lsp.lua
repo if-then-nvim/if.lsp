@@ -11,7 +11,7 @@ local subcmds = {
     l.definition()
   end,
   code_action = function(l, o)
-    l.code_action { range = o.range > 0 }
+    l.code_action(o.range > 0 and { line1 = o.line1, line2 = o.line2 } or nil)
   end,
   rename = function(l)
     l.rename()

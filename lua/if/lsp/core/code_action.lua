@@ -210,9 +210,14 @@ function M.code_action(opts)
   if live then
     from, to = selection_bounds(source_bufnr, mode)
     first, last = from[1] - 1, to[1] - 1
-  elseif opts.range then
-    first = vim.api.nvim_buf_get_mark(source_bufnr, "<")[1] - 1
-    last = vim.api.nvim_buf_get_mark(source_bufnr, ">")[1] - 1
+  elseif opts.line1 and opts.line2 then
+    -- What the command was given, not the '< '> marks. A command range can
+    -- come from :5,10 or :% as easily as from a selection, and reading the
+    -- marks instead both ignores those and raises E20 when no selection has
+    -- ever been made in the buffer.
+    first, last = opts.line1 - 1, opts.line2 - 1
+    local tail = vim.api.nvim_buf_get_lines(source_bufnr, last, last + 1, false)[1] or ""
+    from, to = { opts.line1, 0 }, { opts.line2, math.max(#tail - 1, 0) }
   else
     first = vim.api.nvim_win_get_cursor(0)[1] - 1
     last = first
@@ -251,7 +256,7 @@ function M.code_action(opts)
   local function params_for(client)
     local enc = client.offset_encoding or "utf-16"
     local p
-    if live or opts.range then
+    if from and to then
       p = vim.lsp.util.make_given_range_params(from, to, source_bufnr, enc)
     else
       p = vim.lsp.util.make_position_params(0, enc)

@@ -226,6 +226,32 @@ function FloatPanel:resize_height(h)
   vim.api.nvim_win_set_config(self.win, { height = math.max(1, math.min(h, ceiling)) })
 end
 
+---Widen, never narrow, and never past the right edge of the screen.
+---
+---A list of action titles is a poor guess at how wide a diff will be, so the
+---panel has to be able to grow once a preview lands. It must not shrink back:
+---moving between an action that carries a diff and one that does not would
+---then resize the window under the cursor on every keystroke.
+---
+---Width only, for the same reason resize_height passes height only — sending
+---relative again re-anchors the panel to wherever the cursor has got to.
+---@param w integer
+function FloatPanel:grow_width(w)
+  if not self:is_open() then
+    return
+  end
+  local current = vim.api.nvim_win_get_width(self.win)
+  if w <= current then
+    return
+  end
+  local border = (self:get_config().border or "none") ~= "none" and 2 or 0
+  local col = vim.api.nvim_win_get_position(self.win)[2]
+  local target = math.min(w, vim.o.columns - col - border)
+  if target > current then
+    vim.api.nvim_win_set_config(self.win, { width = target })
+  end
+end
+
 ---Where the window goes, given how big it wants to be.
 ---
 ---A float anchored a line under the cursor has nowhere to grow once the

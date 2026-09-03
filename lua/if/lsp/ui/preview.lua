@@ -73,8 +73,18 @@ function PreviewManager:update(idx)
     end
 
     local cfg = panel:get_config()
-    -- The window keeps whatever width it opened at; only the height follows
-    -- the preview.
+    -- Action titles are a poor guess at how wide a diff will be. Widen to fit
+    -- one, bounded by max_width and by the screen; grow_width never gives the
+    -- space back, so moving through the list does not resize the window.
+    local widest = 0
+    for _, l in ipairs(diff_lines) do
+      local w = vim.fn.strdisplaywidth(l)
+      if w > widest then
+        widest = w
+      end
+    end
+    local cap = math.floor(vim.o.columns * (cfg.max_width or 0.8))
+    panel:grow_width(math.min(widest + 2 + (cfg.pad_right or 0), cap))
     local new_width = vim.api.nvim_win_get_width(panel.win)
 
     vim.bo[panel.buf].modifiable = true

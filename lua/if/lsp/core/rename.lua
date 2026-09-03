@@ -38,6 +38,10 @@ function InputPanel:build_content(placeholder)
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, lines)
   vim.bo[self.buf].buftype = "nofile"
 
+  -- One line, typed into, and a completion menu over it is only ever in the
+  -- way. blink.cmp and nvim-cmp both read this, and both stop for it.
+  vim.b[self.buf].completion = false
+
   return lines, {}
 end
 

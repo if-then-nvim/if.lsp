@@ -4,6 +4,7 @@ local glyph = require "if.lsp.glyph"
 local extmarks_ui = require "if.lsp.ui.extmarks"
 local footer = require "if.lsp.ui.footer"
 local FloatPanel = require "if.lsp.ui.float"
+local window = require "if.lsp.ui.window"
 local PreviewManager = require "if.lsp.ui.preview"
 
 local DiagnosticPanel = setmetatable({}, { __index = FloatPanel })
@@ -27,18 +28,9 @@ local function get_client_name(namespace_id, bufnr)
 end
 
 function DiagnosticPanel:get_config()
-  local cfg = FloatPanel.get_config(self)
-  -- Pin the width to the cap. The panel opens on the diagnostic alone and
-  -- the code actions arrive afterwards, appended without a resize — so a
-  -- width taken from the message left every action title longer than it
-  -- wrapped onto a second line with no number beside it.
-  local columns = vim.api.nvim_get_option_value("columns", {})
-  local fixed = cfg.max_width and math.floor(columns * cfg.max_width) or nil
-
-  return vim.tbl_extend("force", cfg, {
+  return vim.tbl_extend("force", FloatPanel.get_config(self), {
     enter = false,
     diff_context = 3,
-    min_width = fixed or cfg.min_width,
   })
 end
 
@@ -306,10 +298,21 @@ local function request_code_actions()
 
           extmarks_ui.apply(target_buf, "iflsp_diagnostic", action_extmarks, action_lines, #current_lines)
 
-          local new_total = vim.api.nvim_buf_line_count(target_buf)
-          local new_height = math.min(new_total, math.floor(vim.api.nvim_get_option_value("lines", {}) * 0.4))
+          -- The panel opened on the diagnostic alone; the titles are wider
+          -- than the message almost every time, so the width is settled here,
+          -- once, against everything the buffer now holds. Nothing widens it
+          -- again after this.
           if panel:is_open() then
-            vim.api.nvim_win_set_config(panel.win, { height = new_height })
+            local cfg = panel:get_config()
+            local all = vim.api.nvim_buf_get_lines(target_buf, 0, -1, false)
+            local size = window.compute(all, {
+              max_width = cfg.max_width,
+              max_height = cfg.max_height,
+              pad_right = cfg.pad_right,
+              min_width = cfg.min_width,
+              min_height = cfg.min_height,
+            })
+            panel:resize(math.max(size.width, vim.api.nvim_win_get_width(panel.win)), size.height)
           end
 
           preview:attach(all_actions, panel._action_start_line + #all_actions)
